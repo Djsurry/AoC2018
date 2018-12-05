@@ -27,9 +27,11 @@ class Leaderboard(threading.Thread):
 	def refresh(self):
 		try:
 			self.json = requests.get(url, cookies=cookies).json()
+			self.codes = {n: self.json["members"][n]["name"] for n in self.json["members"].keys()}
 		except:
 			self.json = {}
-		self.codes = {n: self.json["members"][n]["name"] for n in self.json["members"].keys()}
+			self.codes = {}
+		
 
 	def sendEmail(self, winner, winner_points, second, second_points, david_stars, dad_stars):
 		tos = ["dsurry@wearelcc.ca", "djsurry@gmail.com", "patrick.surry@gmail.com"]
@@ -61,6 +63,7 @@ class Leaderboard(threading.Thread):
 				print("[*] Winner changed. Sending update email")
 				self.sendEmail(self.codes[rankings[0]], self.json["members"][rankings[0]]["local_score"], self.codes[rankings[1]], self.json["members"][rankings[1]]["local_score"], stars["Djsurry"], stars["patricksurry"])
 				self.lastSent = time.time()
+				self.lastWinner = rankings[0]
 			if time.time()-self.lastSent > 60*60*120 and datetime.datetime.now().hour > 6 and datetime.datetime.now().hour < 22:
 				print("[*] Sending update email")
 				self.sendEmail(self.codes[rankings[0]], self.json["members"][rankings[0]]["local_score"], self.codes[rankings[1]], self.json["members"][rankings[1]]["local_score"], stars["Djsurry"], stars["patricksurry"])
@@ -69,8 +72,8 @@ class Leaderboard(threading.Thread):
 			time.sleep(600)
 
 	def status(self):
-		
-		return {self.json["members"][n]["name"]: len(self.json["members"][n]["completion_day_level"][str(datetime.datetime.now().day)]) for n in self.codes}
+
+		return {self.json["members"][n]["name"]: (len(self.json["members"][n]["completion_day_level"][str(datetime.datetime.now().day)]) if str(datetime.datetime.now().day) in self.json["members"][n]["completion_day_level"].keys() else 0) for n in self.codes}
 
 	def rankings(self):
 		return [i for i in sorted([n for n in self.codes.keys()], reverse=True, key=lambda x: int(self.json["members"][x]["local_score"]))]
